@@ -1,11 +1,11 @@
 {
-    "name": "@hyperledger/caliper-ethereum",
-    "description": "Ethereum adaptor for Caliper, enabling the running of performance benchmarks that interact with Ethereum",
+    "name": "@hyperledger/caliper-quorum",
+    "description": "Quorum adaptor for Caliper, enabling the running of performance benchmarks that interact with Quorum",
     "version": "0.3.1-unstable",
     "repository": {
         "type": "git",
-        "url": "https://github.com/hyperledger/caliper",
-        "directory": "packages/caliper-ethereum"
+        "url": "git+https://github.com/hyperledger/caliper.git",
+        "directory": "packages/caliper-quorum"
     },
     "publishConfig": {
         "access": "public"
@@ -26,14 +26,14 @@
         "ethereumjs-wallet": "^0.6.3"
     },
     "devDependencies": {
-        "web3": "1.2.2",
         "chai": "^3.5.0",
         "eslint": "^5.16.0",
+        "license-check-and-add": "2.3.6",
         "mocha": "3.4.2",
         "nyc": "11.1.0",
         "rewire": "^4.0.0",
         "sinon": "^7.3.2",
-        "license-check-and-add": "2.3.6"
+        "web3": "^1.2.2"
     },
     "license-check-and-add-config": {
         "folder": ".",
@@ -85,5 +85,14 @@
         "functions": 7,
         "lines": 5
     },
-    "license": "Apache-2.0"
+    "license": "Apache-2.0",
+    "bugs": {
+        "url": "https://github.com/hyperledger/caliper/issues"
+    },
+    "homepage": "https://github.com/hyperledger/caliper#readme",
+    "main": "index.js",
+    "directories": {
+        "lib": "lib"
+    },
+    "author": ""
 }

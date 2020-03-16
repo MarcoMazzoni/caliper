@@ -4,18 +4,19 @@
             "npmClientArgs": ["--no-package-lock"]
         }
     },
-	"packages": [
-	    "packages/caliper-core",
+    "packages": [
+        "packages/caliper-core",
         "packages/caliper-burrow",
         "packages/caliper-ethereum",
         "packages/caliper-fabric",
         "packages/caliper-fisco-bcos",
         "packages/caliper-iroha",
+        "packages/caliper-quorum",
         "packages/caliper-sawtooth",
         "packages/caliper-cli",
         "packages/caliper-publish",
         "packages/caliper-tests-integration"
-	],
-	"version": "0.3.1-unstable",
-	"hoist": true
-  }
+    ],
+    "version": "0.3.1-unstable",
+    "hoist": true
+}
