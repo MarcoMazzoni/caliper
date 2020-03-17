@@ -95,6 +95,11 @@ sut:
             packages: ['web3@1.2.0']
         latest: *ethereum-latest
 
+    quorum:
+        1.2.1: &quorum-latest
+            packages: ['web3@1.2.0']
+        latest: *quorum-latest
+
     besu:
         1.3.2: &besu-latest
             packages: ['web3@1.2.0']
