@@ -237,7 +237,7 @@ class CaliperLocalClient {
      * @async
      */
     async runFixedNumber(cb, number, rateController) {
-        Logger.info('Info: client ' + this.clientIndex +  ' start test runFixedNumber()' + (cb.info ? (':' + cb.info) : ''));
+        Logger.info('Info: client ' + this.clientIndex +  ' start test runFixedNumber()' + (cb.info ? (': ' + cb.info) : ''));
         this.startTime = Date.now();
 
         let promises = [];
@@ -266,7 +266,7 @@ class CaliperLocalClient {
      * @async
      */
     async runDuration(cb, duration, rateController) {
-        Logger.info('Info: client ' + this.clientIndex +  ' start test runDuration()' + (cb.info ? (':' + cb.info) : ''));
+        Logger.info('Info: client ' + this.clientIndex +  ' start test runDuration()' + (cb.info ? (': ' + cb.info) : ''));
         this.startTime = Date.now();
 
         let promises = [];

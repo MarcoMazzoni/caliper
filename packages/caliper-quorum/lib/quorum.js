@@ -47,7 +47,9 @@ class Quorum extends BlockchainInterface {
         );
         this.bcType = "quorum";
         this.quorumConfig = require(configPath).quorum;
-        this.web3 = new Web3(this.quorumConfig.url);
+        this.web3 = new Web3(
+            new Web3.providers.HttpProvider(this.quorumConfig.url)
+        );
         this.web3.transactionConfirmationBlocks = this.quorumConfig.transactionConfirmationBlocks;
         this.clientIndex = workerIndex;
     }
@@ -91,8 +93,10 @@ class Quorum extends BlockchainInterface {
             let contractData = require(CaliperUtils.resolvePath(
                 this.quorumConfig.contracts[key].path
             )); // TODO remove path property
-            let contractGas = this.quorumConfig.contracts[key].gas;
+
+            let contractGas = contractData.gas;
             let estimateGas = this.quorumConfig.contracts[key].estimateGas;
+
             this.quorumConfig.contracts[key].abi = contractData.abi;
             promises.push(
                 new Promise(async function(resolve, reject) {
@@ -135,7 +139,11 @@ class Quorum extends BlockchainInterface {
             context.contracts[key] = {
                 contract: new this.web3.eth.Contract(
                     args.contracts[key].abi,
-                    args.contracts[key].address
+                    args.contracts[key].address,
+                    {
+                        from: this.quorumConfig.fromAddress,
+                        gasPrice: "0"
+                    }
                 ),
                 gas: args.contracts[key].gas,
                 estimateGas: args.contracts[key].estimateGas
@@ -206,6 +214,7 @@ class Quorum extends BlockchainInterface {
         } else {
             invocations = invokeData;
         }
+
         let promises = [];
         invocations.forEach((item, index) => {
             promises.push(
@@ -278,13 +287,16 @@ class Quorum extends BlockchainInterface {
         let status = new TxStatus();
         let params = { from: context.fromAddress };
         let contractInfo = context.contracts[contractID];
+
         try {
             context.engine.submitCallback(1);
             let receipt = null;
             let methodType = "send";
             if (methodCall.isView) {
                 methodType = "call";
-            } else if (
+            }
+            /*
+            else if (
                 context.nonces &&
                 typeof context.nonces[context.fromAddress] !== "undefined"
             ) {
@@ -292,7 +304,9 @@ class Quorum extends BlockchainInterface {
                 context.nonces[context.fromAddress] = nonce + 1;
                 params.nonce = nonce;
             }
+*/
             if (methodCall.args) {
+                /*
                 if (contractInfo.gas && contractInfo.gas[methodCall.verb]) {
                     params.gas = contractInfo.gas[methodCall.verb];
                 } else if (contractInfo.estimateGas) {
@@ -302,10 +316,13 @@ class Quorum extends BlockchainInterface {
                             ...methodCall.args
                         ).estimateGas());
                 }
+                */
+
                 receipt = await contractInfo.contract.methods[methodCall.verb](
                     ...methodCall.args
                 )[methodType](params);
             } else {
+                /*
                 if (contractInfo.gas && contractInfo.gas[methodCall.verb]) {
                     params.gas = contractInfo.gas[methodCall.verb];
                 } else if (contractInfo.estimateGas) {
@@ -315,6 +332,7 @@ class Quorum extends BlockchainInterface {
                             methodCall.verb
                         ].estimateGas(params));
                 }
+*/
                 receipt = await contractInfo.contract.methods[
                     methodCall.verb
                 ]()[methodType](params);
@@ -331,7 +349,9 @@ class Quorum extends BlockchainInterface {
                     " calling method " +
                     methodCall.verb +
                     " nonce " +
-                    params.nonce
+                    params.nonce +
+                    " ARGS: " +
+                    methodCall.args
             );
             logger.error(err);
         }
@@ -378,7 +398,8 @@ class Quorum extends BlockchainInterface {
             contractDeploy
                 .send({
                     from: contractDeployerAddress,
-                    gas: contractData.gas
+                    gas: contractData.gas,
+                    gasPrice: "0"
                 })
                 .on("error", error => {
                     reject(error);
@@ -397,7 +418,7 @@ class Quorum extends BlockchainInterface {
      */
     async prepareWorkerArguments(number) {
         let result = [];
-        for (let i = 0; i <= number; i++) {
+        for (let i = 0; i < number; i++) {
             result[i] = { contracts: this.quorumConfig.contracts };
         }
         return result;

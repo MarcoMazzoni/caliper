@@ -1,26 +1,26 @@
 /*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-* http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
-'use strict';
+"use strict";
 
-const Blockchain = require('../common/core/blockchain');
-const CaliperUtils = require('../common/utils/caliper-utils');
-const ConfigUtils = require('../common/config/config-util');
-const RoundOrchestrator = require('./orchestrators/round-orchestrator');
-const BenchValidator = require('../common/utils/benchmark-validator');
+const Blockchain = require("../common/core/blockchain");
+const CaliperUtils = require("../common/utils/caliper-utils");
+const ConfigUtils = require("../common/config/config-util");
+const RoundOrchestrator = require("./orchestrators/round-orchestrator");
+const BenchValidator = require("../common/utils/benchmark-validator");
 
-const logger = CaliperUtils.getLogger('caliper-engine');
+const logger = CaliperUtils.getLogger("caliper-engine");
 
 /**
  * Encapsulates the high-level control flow of a benchmark execution.
@@ -48,15 +48,18 @@ class CaliperEngine {
      * @private
      */
     async _executeCommand(commandName, errorStatusStart) {
-        if (this.networkConfig.caliper && this.networkConfig.caliper.command && this.networkConfig.caliper.command[commandName]) {
+        if (
+            this.networkConfig.caliper &&
+            this.networkConfig.caliper.command &&
+            this.networkConfig.caliper.command[commandName]
+        ) {
             let command = this.networkConfig.caliper.command[commandName];
-            if (typeof command !== 'string') {
+            if (typeof command !== "string") {
                 let msg = `Network configuration attribute "caliper.command.${commandName}" is not a string`;
                 logger.error(msg, command);
                 this.returnCode = errorStatusStart + 1;
                 throw new Error(msg);
-            }
-            else if (!command.trim()) {
+            } else if (!command.trim()) {
                 let msg = `Network configuration attribute "caliper.command.${commandName}" is specified, but it is empty`;
                 logger.error(msg);
                 this.returnCode = errorStatusStart + 2;
@@ -64,7 +67,9 @@ class CaliperEngine {
             } else {
                 let startTime = Date.now();
                 try {
-                    await CaliperUtils.execAsync(`cd ${this.workspace}; ${command}`);
+                    await CaliperUtils.execAsync(
+                        `cd ${this.workspace}; ${command}`
+                    );
                 } catch (err) {
                     let msg = `An error occurred while executing the ${commandName} command: ${err}`;
                     logger.error(msg);
@@ -72,11 +77,17 @@ class CaliperEngine {
                     throw new Error(msg);
                 } finally {
                     let endTime = Date.now();
-                    logger.info(`Executed ${commandName} command in ${(endTime - startTime)/1000.0} seconds`);
+                    logger.info(
+                        `Executed ${commandName} command in ${(endTime -
+                            startTime) /
+                            1000.0} seconds`
+                    );
                 }
             }
         } else {
-            logger.info(`Network configuration attribute "caliper.command.${commandName}" is not present, skipping ${commandName} command`);
+            logger.info(
+                `Network configuration attribute "caliper.command.${commandName}" is not present, skipping ${commandName} command`
+            );
         }
     }
 
@@ -90,22 +101,25 @@ class CaliperEngine {
         // Validate configObject (benchmark configuration file)
         BenchValidator.validateObject(this.benchmarkConfig);
 
-        logger.info('Starting benchmark flow');
-        let adapter = await this.adapterFactory(-1);
+        logger.info("Starting benchmark flow");
+        let adapter = await this.adapterFactory(-1); // creates blockchain instance for Master process
         const blockchainWrapper = new Blockchain(adapter);
 
         try {
-
             // Conditional running of 'start' commands
-            if (!flowOpts.performStart)  {
-                logger.info('Skipping start commands due to benchmark flow conditioning');
+            if (!flowOpts.performStart) {
+                logger.info(
+                    "Skipping start commands due to benchmark flow conditioning"
+                );
             } else {
-                await this._executeCommand('start', 0);
+                await this._executeCommand("start", 0);
             }
 
             // Conditional network initialization
             if (!flowOpts.performInit) {
-                logger.info('Skipping initialization phase due to benchmark flow conditioning');
+                logger.info(
+                    "Skipping initialization phase due to benchmark flow conditioning"
+                );
             } else {
                 let initStartTime = Date.now();
                 try {
@@ -117,13 +131,19 @@ class CaliperEngine {
                     throw new Error(msg);
                 } finally {
                     let initEndTime = Date.now();
-                    logger.info(`Executed "init" step in ${(initEndTime - initStartTime)/1000.0} seconds`);
+                    logger.info(
+                        `Executed "init" step in ${(initEndTime -
+                            initStartTime) /
+                            1000.0} seconds`
+                    );
                 }
             }
 
             // Conditional smart contract installation
             if (!flowOpts.performInstall) {
-                logger.info('Skipping install smart contract phase due to benchmark flow conditioning');
+                logger.info(
+                    "Skipping install smart contract phase due to benchmark flow conditioning"
+                );
             } else {
                 let installStartTime = Date.now();
                 try {
@@ -135,19 +155,36 @@ class CaliperEngine {
                     throw new Error(msg);
                 } finally {
                     let installEndTime = Date.now();
-                    logger.info(`Executed "install" step in ${(installEndTime - installStartTime)/1000.0} seconds`);
+                    logger.info(
+                        `Executed "install" step in ${(installEndTime -
+                            installStartTime) /
+                            1000.0} seconds`
+                    );
                 }
             }
 
             // Conditional test phase
             if (!flowOpts.performTest) {
-                logger.info('Skipping benchmark test phase due to benchmark flow conditioning');
+                logger.info(
+                    "Skipping benchmark test phase due to benchmark flow conditioning"
+                );
             } else {
-                let numberSet = this.benchmarkConfig.test && this.benchmarkConfig.test.workers && this.benchmarkConfig.test.workers.number;
-                let numberOfWorkers = numberSet ? this.benchmarkConfig.test.workers.number : 1;
-                let workerArguments = await blockchainWrapper.prepareWorkerArguments(numberOfWorkers);
+                let numberSet =
+                    this.benchmarkConfig.test &&
+                    this.benchmarkConfig.test.workers &&
+                    this.benchmarkConfig.test.workers.number;
+                let numberOfWorkers = numberSet
+                    ? this.benchmarkConfig.test.workers.number
+                    : 1;
+                let workerArguments = await blockchainWrapper.prepareWorkerArguments(
+                    numberOfWorkers
+                );
 
-                const roundOrchestrator = new RoundOrchestrator(this.benchmarkConfig, this.networkConfig, workerArguments);
+                const roundOrchestrator = new RoundOrchestrator(
+                    this.benchmarkConfig,
+                    this.networkConfig,
+                    workerArguments
+                );
                 await roundOrchestrator.run();
             }
         } catch (err) {
@@ -161,10 +198,12 @@ class CaliperEngine {
         } finally {
             // Conditional running of 'end' commands
             if (!flowOpts.performEnd) {
-                logger.info('Skipping end command due to benchmark flow conditioning');
+                logger.info(
+                    "Skipping end command due to benchmark flow conditioning"
+                );
             } else {
                 try {
-                    await this._executeCommand('end', 6);
+                    await this._executeCommand("end", 6);
                 } catch (err) {
                     // the error was already handled/logged, so ignore it
                 }
