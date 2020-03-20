@@ -96,18 +96,35 @@ class Quorum extends BlockchainInterface {
 
             let contractGas = contractData.gas;
             let estimateGas = this.quorumConfig.contracts[key].estimateGas;
+            let isPrivate = this.quorumConfig.contracts[key].isPrivate;
+            let privateFor = this.quorumConfig.contracts[key].privateFor;
+            let privateFrom = this.quorumConfig.privateFrom;
 
             this.quorumConfig.contracts[key].abi = contractData.abi;
             promises.push(
                 new Promise(async function(resolve, reject) {
-                    let contractInstance = await self.deployContract(
-                        contractData
-                    );
+                    let contractInstance = null;
+                    let status = "PUBLIC"
+
+                    if (isPrivate) {
+                        contractInstance = await self.deployPrivateContract(
+                            contractData,
+                            privateFrom,
+                            privateFor
+                        );
+                        status = "PRIVATE";
+                    } else {
+                        contractInstance = await self.deployContract(
+                            contractData
+                        );
+                    }
+
                     logger.info(
                         "Deployed contract " +
                             contractData.name +
                             " at " +
-                            contractInstance.options.address
+                            contractInstance.options.address +
+                            ", status: " + status
                     );
                     self.quorumConfig.contracts[key].address =
                         contractInstance.options.address;
@@ -146,12 +163,21 @@ class Quorum extends BlockchainInterface {
                     }
                 ),
                 gas: args.contracts[key].gas,
-                estimateGas: args.contracts[key].estimateGas
+                estimateGas: args.contracts[key].estimateGas,
+                //Quorum specific
+                isPrivate: args.contracts[key].isPrivate,
+                privateFor: args.contracts[key].privateFor
             };
         }
         if (this.quorumConfig.fromAddress) {
             context.fromAddress = this.quorumConfig.fromAddress;
         }
+
+        //Quorum specific
+        if (this.quorumConfig.privateFrom) {
+            context.privateFrom = this.quorumConfig.privateFrom;
+        }
+
         if (this.quorumConfig.fromAddressSeed) {
             let hdwallet = EthereumHDKey.fromMasterSeed(
                 this.quorumConfig.fromAddressSeed
@@ -305,34 +331,16 @@ class Quorum extends BlockchainInterface {
                 params.nonce = nonce;
             }
 */
-            if (methodCall.args) {
-                /*
-                if (contractInfo.gas && contractInfo.gas[methodCall.verb]) {
-                    params.gas = contractInfo.gas[methodCall.verb];
-                } else if (contractInfo.estimateGas) {
-                    params.gas =
-                        1000 +
-                        (await contractInfo.contract.methods[methodCall.verb](
-                            ...methodCall.args
-                        ).estimateGas());
-                }
-                */
+            if (methodType === "send" && methodCall.isPrivate) {
+                params.isPrivate = methodCall.isPrivate;
+                params.privateFor = methodCall.privateFor;
+            }
 
+            if (methodCall.args) {
                 receipt = await contractInfo.contract.methods[methodCall.verb](
                     ...methodCall.args
                 )[methodType](params);
             } else {
-                /*
-                if (contractInfo.gas && contractInfo.gas[methodCall.verb]) {
-                    params.gas = contractInfo.gas[methodCall.verb];
-                } else if (contractInfo.estimateGas) {
-                    params.gas =
-                        1000 +
-                        (await contractInfo.contract.methods[
-                            methodCall.verb
-                        ].estimateGas(params));
-                }
-*/
                 receipt = await contractInfo.contract.methods[
                     methodCall.verb
                 ]()[methodType](params);
@@ -348,7 +356,7 @@ class Quorum extends BlockchainInterface {
                     contractID +
                     " calling method " +
                     methodCall.verb +
-                    " nonce " +
+                    " PrivateFrom " +
                     params.nonce +
                     " ARGS: " +
                     methodCall.args
@@ -400,6 +408,36 @@ class Quorum extends BlockchainInterface {
                     from: contractDeployerAddress,
                     gas: contractData.gas,
                     gasPrice: "0"
+                })
+                .on("error", error => {
+                    reject(error);
+                })
+                .then(newContractInstance => {
+                    resolve(newContractInstance);
+                });
+        });
+    }
+
+    /**
+     * Deploys a new Private contract using the given web3 instance
+     * @param {JSON} contractData Contract data with abi, bytecode and gas properties
+     * @returns {Promise<web3.eth.Contract>} The deployed private contract instance
+     */
+    deployPrivateContract(contractData, privateFrom, privateFor) {
+        let web3 = this.web3;
+        let contractDeployerAddress = this.quorumConfig.contractDeployerAddress;
+        return new Promise(function(resolve, reject) {
+            let contract = new web3.eth.Contract(contractData.abi);
+            let contractDeploy = contract.deploy({
+                data: contractData.bytecode
+            });
+            contractDeploy
+                .send({
+                    from: contractDeployerAddress,
+                    gas: contractData.gas,
+                    gasPrice: "0",
+                    privateFrom: privateFrom,
+                    privateFor: privateFor
                 })
                 .on("error", error => {
                     reject(error);
