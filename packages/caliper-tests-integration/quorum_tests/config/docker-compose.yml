@@ -1,9 +1,10 @@
 version: '3.6'
 services:
-  node_1:
-    image: quorum-tessera-2
+  node_istanbul_1:
+    image: quorum-raft-ibft
     volumes:
       - './qdata_1:/qdata'
+      - '/etc/localtime:/etc/localtime'
     networks:
       quorum_net:
         ipv4_address: '172.13.0.2'
@@ -12,12 +13,13 @@ services:
       - 24001:30303
       - 25001:50400
       - 26001:8546
-      - 27001:9000
+      - 27001:9081
     user: '1000:1000'
-  node_2:
-    image: quorum-tessera-2
+  node_istanbul_2:
+    image: quorum-raft-ibft
     volumes:
       - './qdata_2:/qdata'
+      - '/etc/localtime:/etc/localtime'
     networks:
       quorum_net:
         ipv4_address: '172.13.0.3'
@@ -26,12 +28,13 @@ services:
       - 24002:30303
       - 25002:50400
       - 26002:8546
-      - 27002:9000
+      - 27002:9081
     user: '1000:1000'
-  node_3:
-    image: quorum-tessera-2
+  node_istanbul_3:
+    image: quorum-raft-ibft
     volumes:
       - './qdata_3:/qdata'
+      - '/etc/localtime:/etc/localtime'
     networks:
       quorum_net:
         ipv4_address: '172.13.0.4'
@@ -40,12 +43,13 @@ services:
       - 24003:30303
       - 25003:50400
       - 26003:8546
-      - 27003:9000
+      - 27003:9081
     user: '1000:1000'
-  node_4:
-    image: quorum-tessera-2
+  node_istanbul_4:
+    image: quorum-raft-ibft
     volumes:
       - './qdata_4:/qdata'
+      - '/etc/localtime:/etc/localtime'
     networks:
       quorum_net:
         ipv4_address: '172.13.0.5'
@@ -54,12 +58,13 @@ services:
       - 24004:30303
       - 25004:50400
       - 26004:8546
-      - 27004:9000
+      - 27004:9081
     user: '1000:1000'
-  node_5:
-    image: quorum-tessera-2
+  node_istanbul_5:
+    image: quorum-raft-ibft
     volumes:
       - './qdata_5:/qdata'
+      - '/etc/localtime:/etc/localtime'
     networks:
       quorum_net:
         ipv4_address: '172.13.0.6'
@@ -68,7 +73,7 @@ services:
       - 24005:30303
       - 25005:50400
       - 26005:8546
-      - 27005:9000
+      - 27005:9081
     user: '1000:1000'
 networks:
   quorum_net:

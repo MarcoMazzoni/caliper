@@ -2,6 +2,8 @@
 #Create image layer pulling QUORUM from git and installing GOLANG
 FROM ubuntu:18.04 as builder 
 
+ARG QUORUM_VERSION=2.3.0
+
 WORKDIR /work
 
 RUN apt-get update && \
@@ -42,9 +44,17 @@ RUN wget -q https://dl.google.com/go/${GOREL} && \
     mv go /usr/local/go && \
     rm -f $GOREL
 
+# Istanbul tools
+RUN git clone https://github.com/jpmorganchase/istanbul-tools.git istanbul && \
+    cd istanbul && \
+    make && \
+    cp build/bin/istanbul /usr/local/bin/ && \
+    cd .. && rm -rf istanbul
+
 #Quorum
 RUN git clone https://github.com/jpmorganchase/quorum.git && \
     cd quorum && \
+    git checkout v$QUORUM_VERSION && \
     make all && \
     cp build/bin/geth /usr/local/bin && \
     cp build/bin/bootnode /usr/local/bin && \
@@ -90,10 +100,12 @@ RUN apt-get update && \
 
 COPY --from=builder /work/tessera/tessera-dist/tessera-app/target/tessera-app-*app.jar /tessera/tessera-app.jar
 COPY --from=builder \
+        /usr/local/bin/istanbul \
         /usr/local/bin/geth \
         /usr/local/bin/bootnode \
         /usr/local/bin/wrk \
-    /usr/local/bin/
+        /usr/local/bin/
 
 ENV SHELL=/bin/bash
+
 CMD ["/qdata/start-node.sh"]

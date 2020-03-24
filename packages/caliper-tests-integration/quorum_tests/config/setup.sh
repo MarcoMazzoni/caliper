@@ -27,37 +27,47 @@ COLOR_WHITE='\e[1;37m';
 #### Configuration options #############################################
 
 # One Docker container will be configured for each IP address in $ips
-subnet="172.13.0.0/16"
-export ips=("172.13.0.2" "172.13.0.3" "172.13.0.4" "172.13.0.5" "172.13.0.6")
 
-# Docker image name
-image=quorum-tessera-2
-
-# Host ports
-rpc_start_port=23000
-node_start_port=24000
-raft_start_port=25000
-ws_start_port=26000
-tessera_start_port=27000
-
-# Container ports
-raft_port=50400
-constellation_port=9000
-rlp_port=30303
-rpc_port=8545
-ws_port=8546
+# Please edit config.sh for cluster configuration.
+source ./config.sh
 
 ########################################################################
 
-nnodes=${#ips[@]}
+ip_prefix="`echo ${subnet} | cut -d / -f 1 | cut -d . -f 1-3`."
 
-if [[ $nnodes < 2 ]]
+ips=()
+signer_ips=()
+
+n=0
+
+[[ ! "$1" = "" ]] && consensus=$1
+
+if [ "${consensus}" = "clique" ]; then
+    echo -e "${COLOR_WHITE}[*] Deploy ${COLOR_BLUE}Quorum${COLOR_WHITE} with ${COLOR_YELLOW}Clique${COLOR_WHITE} consensus engine${COLOR_RESET}"
+elif [ "${consensus}" = "istanbul" ]; then
+    echo -e "${COLOR_WHITE}[*] Deploy ${COLOR_BLUE}Quorum${COLOR_WHITE} with ${COLOR_GREEN}Istanbul BFT${COLOR_WHITE} consensus engine${COLOR_RESET}"
+elif [ "${consensus}" = "raft" ]; then
+    echo -e "${COLOR_WHITE}[*] Deploy ${COLOR_BLUE}Quorum${COLOR_WHITE} with ${COLOR_RED}Raft${COLOR_WHITE} consensus engine${COLOR_RESET}"
+else
+    echo -e "${COLOR_WHITE}Consensus engine not found: ${COLOR_RED}${consensus}${COLOR_WHITE}${COLOR_RESET}"
+fi
+
+if [[ "$total_nodes" -lt "2" ]]
 then
-    echo "ERROR: There must be more than one node IP address."
+    echo "ERROR: There must be more than one node."
     exit 1
 fi
-   
-./cleanup.sh
+
+if [[ ! "${consensus}" = "raft" &&  "$signer_nodes" -lt "4" ]]
+then
+    echo "ERROR: There must be at least four signer nodes in IBFT and Clique consensus ."
+    exit 1
+fi
+
+if [ -e docker-compose.yml ]; then
+    echo -e "${COLOR_WHITE}[*] Performing cleanup. ${COLOR_RESET}"
+    ./cleanup.sh
+fi
 
 uid=`id -u`
 gid=`id -g`
@@ -65,21 +75,46 @@ pwd=`pwd`
 
 #### Create directories for each node's configuration ##################
 
-echo '[1] Configuring for '$nnodes' nodes.'
+# Force cleanup on next setup
+touch docker-compose.yml
 
+cp config.sh .current_config
+
+i=0
+n=0
+
+# Fill IP list
+# The loop starts from i=2 and stops to i=(total_nodes+1)
+for i in $(seq 2 $((total_nodes+1))); do
+    ips+=("$ip_prefix$i") 
+    if [[ ! "${consensus}" = "raft" && "$n" -ge "$((total_nodes-signer_nodes))" ]]; then
+        signer_ips+=("$ip_prefix$i")
+    fi
+    let n++
+done
+
+printf "${COLOR_WHITE}[1] Configuring for ${COLOR_RED}'$total_nodes'${COLOR_WHITE} nodes"
+if [ ! "${consensus}" = "raft" ]; then
+    printf " with ${COLOR_YELLOW}'${#signer_ips[@]}'${COLOR_WHITE} signer nodes"
+fi
+
+echo -e ".${COLOR_RESET}"
+
+# Create directories
 n=1
 for ip in ${ips[*]}
 do
     qd=qdata_$n
     mkdir -p $qd/{logs,keys}
     mkdir -p $qd/dd/geth
-    mkdir -p $qd/dd/keystore
 
     let n++
 done
 
 
 #### Make static-nodes.json and store keys #############################
+
+nodekeys=""
 
 echo -e "${COLOR_WHITE}[2] Creating Enodes and static-nodes.json.${COLOR_RESET}"
 
@@ -93,15 +128,20 @@ for ip in ${ips[*]}
 do
     qd=qdata_$n
 
+    # Comma separator for IBFT nodekeys list
+    sep=`[[ $n -lt $total_nodes ]] && echo ","`
+
     # Generate the node's Enode and key
     nkey=`docker run --net=host --rm -u $uid:$gid -v $pwd/$qd:/qdata $image sh -c "/usr/local/bin/bootnode -genkey /qdata/dd/nodekey -writeaddress; cat /qdata/dd/nodekey"`
 
-    #enode=`docker run -u $uid:$gid -v $pwd/$qd:/qdata $image /usr/local/bin/bootnode -genkey /qdata/dd/nodekey -writeaddress`
+    # IBFT uses nodekeys to authorize nodes.
+    if [ "$consensus" = "istanbul" ]; then
+        nodekeys="${nodekeys}${nkey}${sep}"
+    fi
 
     enode=`docker run --net=host --rm -u $uid:$gid -v $pwd/$qd:/qdata $image sh -c "/usr/local/bin/bootnode -nodekeyhex ${nkey} -writeaddress"`
     
     # Add the enode to static-nodes.json
-    sep=`[[ $n < $nnodes ]] && echo ","`
     echo '  "enode://'$enode'@'$ip':'$rlp_port'?raftport='$raft_port'"'$sep >> static-nodes.json
     
     bootnode="${bootnode}enode:\\/\\/${enode}@${ip}:${rlp_port}$sep"
@@ -112,35 +152,81 @@ do
 
     let n++
 done
+
+master_enodes="$master_enodes)"
+
 echo "]" >> static-nodes.json
+
+echo -e "\n\n\n$master_enodes" >> .current_config
 
 
 #### Create accounts, keys and genesis.json file #######################
 
-echo '[3] Creating Ether accounts and genesis.json.'
+echo -e "${COLOR_WHITE}[3] Creating Ether accounts and genesis.json.${COLOR_RESET}"
+
+# extraData parameter for IBFT
+istanbul_extra=""
 
 cat > genesis.json <<EOF
 {
   "alloc": {
 EOF
 
+# Create extraData from nodekeys
+if [ "$consensus" = "istanbul" ]; then
+    genesis=`docker run --net=host --rm $image sh -c "istanbul reinit --nodekey ${nodekeys} --quorum"`
+    istanbul_extra=`echo $genesis | grep -Po '"extraData": "0x[0-9a-f]+",' | cut -d \" -f 4`
+    validators=($(echo $genesis | grep -Po '"[0-9a-f]{40}":' | cut -c 2-41))
+    for addr in ${validators[*]}; do
+        cat >> genesis.json <<EOF
+    "$addr": {
+      "balance": "0x446c3b15f9926687d2c40534fdb564000000000000"
+    },
+EOF
+    done
+fi
+
 n=1
+signers=""
 for ip in ${ips[*]}
 do
     qd=qdata_$n
 
-    # Generate an Ether account for the node
-    cp ./keyfiles/keystore$n/key.prv $qd/dd/keystore/key.prv
-    touch $qd/passwords.txt
-    account=`docker run -u $uid:$gid -v $pwd/$qd:/qdata $image /usr/local/bin/geth --datadir=/qdata/dd --password /qdata/passwords.txt account list | cut -c 14-53`
+    # Generate an Ethereum account from the private key (deterministic account -> generates always accounts with the same addresses)
+    # It'll generate as many accounts as keystore files provided (if you provide 5 keystore files, you can't generate more than 5 nodes -> 1 account per node)
+    if [ "$fixed_accounts" = "true" ]; then
+      mkdir -p $qd/dd/keystore
+      cp ./keyfiles/keystore$n/key.prv $qd/dd/keystore/key.prv
+      touch $qd/passwords.txt
+      account=`docker run -u $uid:$gid -v $pwd/$qd:/qdata $image /usr/local/bin/geth --datadir=/qdata/dd --password /qdata/passwords.txt account list | cut -c 14-53`
+      printf "  - Account ${COLOR_YELLOW}0x${account}${COLOR_RESET} imported on ${COLOR_GREEN}Node #${n}${COLOR_RESET}."
+    else
+    # Generate a random Ethereum account for the node
+      touch $qd/passwords.txt
+      account=`docker run -u $uid:$gid -v $pwd/$qd:/qdata $image /usr/local/bin/geth --datadir=/qdata/dd --password /qdata/passwords.txt account new | cut -c 11-50`
+      printf "  - Account ${COLOR_YELLOW}0x${account}${COLOR_RESET} created on ${COLOR_GREEN}Node #${n}${COLOR_RESET}."
+    fi
+
+    # If current IP matches (regex) the signer_ip, then add the current created account to the signers account list
+    if [[ " ${signer_ips[@]} " =~ " $ip " ]]; then
+        if [ "${consensus}" = "clique" ]; then
+            signers="${account}${signers}"
+        fi
+	      printf " ${COLOR_RED}(Signer)${COLOR_RESET}"
+    fi
+
+    printf "\n" 
 
     # Add the account to the genesis block so it has some Ether at start-up
-    sep=`[[ $n < $nnodes ]] && echo ","`
-    cat >> genesis.json <<EOF
-    "${account}": {
-      "balance": "1000000000000000000000000000"
-    }${sep}
+    sep=`[[ $n -lt $total_nodes ]] && echo ","`
+    
+    if [ "$alloc_ether" = "true" ]; then
+      cat >> genesis.json <<EOF
+      "${account}": {
+        "balance": "1000000000000000000000000000"
+      }${sep}
 EOF
+    fi
 
     let n++
 done
@@ -148,30 +234,70 @@ done
 cat >> genesis.json <<EOF
   },
   "coinbase": "0x0000000000000000000000000000000000000000",
-  "config": {
-    "homesteadBlock": 0,
-    "byzantiumBlock": 0,
-    "chainId": 10,
-    "eip150Block": 0,
-    "eip155Block": 0,
-    "eip150Hash": "0x0000000000000000000000000000000000000000000000000000000000000000",
-    "eip158Block": 0,
-    "isQuorum": true
-  },
-  "difficulty": "0x0",
-  "extraData": "0x0000000000000000000000000000000000000000000000000000000000000000",
+  "difficulty": "0x1",
   "gasLimit": "0xE0000000",
-  "mixhash": "0x00000000000000000000000000000000000000647572616c65787365646c6578",
   "nonce": "0x0",
   "parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
-  "timestamp": "0x00"
+  "timestamp": "0x`printf "%x" $(date +%s)`",
+EOF
+
+cat >> genesis.json <<EOF
+   "config":{
+    "chainId": 10,
+    "eip150Block": 1,
+    "eip150Hash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "eip155Block": 1,
+    "eip158Block": 1,
+    "byzantiumBlock": 1,
+    "constantinopleBlock": 1,
+EOF
+
+# Clique
+if [ "${consensus}" = "clique" ]; then
+    cat >> genesis.json <<EOF
+    "isQuorum": true,
+    "clique": {
+      "period": ${block_period},
+      "epoch": 30000
+    }
+  },
+  "extraData": "0x0000000000000000000000000000000000000000000000000000000000000000${signers}0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+  "mixhash": "0x0000000000000000000000000000000000000000000000000000000000000000"
 }
 EOF
+
+#IBFT
+elif [ "${consensus}" = "istanbul" ]; then
+    cat >> genesis.json <<EOF
+    "isQuorum": true,
+    "istanbul": {
+      "epoch": 30000,
+      "policy": 0,
+      "ceil2Nby3Block": 0
+    }
+  },
+  "gasUsed": "0x0",
+  "number": "0x0",
+  "extraData": "${istanbul_extra}",
+  "mixHash": "0x63746963616c2062797a616e74696e65206661756c7420746f6c6572616e6365"
+}
+EOF
+
+# Raft
+else 
+    cat >> genesis.json <<EOF
+    "isQuorum": true
+  },
+  "extraData": "0x",
+  "mixhash": "0x00000000000000000000000000000000000000647572616c65787365646c6578"
+}
+EOF
+fi
 
 
 #### Complete each node's configuration ################################
 
-echo '[4] Creating Tessera keys and config.json - completing configuration.'
+echo -e "${COLOR_WHITE}[4] Creating Tessera keys and config.json - finishing configuration.${COLOR_RESET}"
 
 #### Add peers to config.json ########################################
 
@@ -182,7 +308,7 @@ do
     
     sep=`[[ $n > 1 ]] && echo ","`
     myline1='"url": "http://'
-    myline1+="$ip:9000"
+    myline1+="$ip:$tessera_port"
     myline1+='"'
     #myline1+=$sep
 
@@ -193,6 +319,7 @@ echo $myline1
 done
 
 
+tessera_keys="tessera_keys=(\n"
 n=1
 for ip in ${ips[*]}
 do
@@ -203,13 +330,10 @@ do
     cp genesis.json $qd/genesis.json
     cp static-nodes.json $qd/dd/static-nodes.json
 
-    # Generate Quorum-related keys (used by Constellation)
-    #docker run -u $uid:$gid -v $pwd/$qd:/qdata $image /usr/local/bin/constellation-enclave-keygen /qdata/keys/tm /qdata/keys/tma < /dev/null > /dev/null
-    #echo 'Node '$n' public key: '`cat $qd/keys/tm.pub`
-
     # Generate Quorum-related keys (used by Tessera)
     docker run -u $uid:$gid -v $pwd/$qd:/qdata $image java -jar /tessera/tessera-app.jar -keygen -filename /qdata/keys/tm < /dev/null > /dev/null
-    echo 'Node '$n' public key: '`cat $qd/keys/tm.pub`
+    pubkey=`cat $qd/keys/tm.pub`
+    echo -e "  - ${COLOR_GREEN}Node #$n${COLOR_RESET} public key for Tessera: ${COLOR_YELLOW}$pubkey${COLOR_RESET}"
 
 
     cat utils/start-node.sh \
@@ -224,8 +348,35 @@ do
     #cp utils/start-node.sh $qd/start-node.sh
     chmod 755 $qd/start-node.sh
 
+    #Do fullsync and mining on clique signer  
+    if [ "${consensus}" = "clique" ]; then
+
+        sed -i 's/--raft /--syncmode full /g' $qd/start-node.sh
+
+	    if [[ " ${signer_ips[@]} " =~ " $ip " ]]; then
+            sed -i 's/full/full --mine/g' $qd/start-node.sh    
+      fi
+
+    elif [ "${consensus}" = "istanbul" ]; then
+
+      #Block period must > 1 in IBFT
+      [[ $block_period < 1 ]] && block_period=1
+
+	    sed -i "s/--raft /--istanbul.blockperiod ${block_period} --syncmode full /g" $qd/start-node.sh
+
+	    if [[ " ${signer_ips[@]} " =~ " $ip " ]]; then
+            sed -i 's/full/full --mine --minerthreads 1 /g' $qd/start-node.sh
+      fi
+
+    fi
+
+    tessera_keys="${tessera_keys}${pubkey}\n"
+
     let n++
 done
+
+tessera_keys="$tessera_keys)"
+echo -e "\n\n$tessera_keys" >> .current_config
 
 rm -rf genesis.json static-nodes.json
 
@@ -243,10 +394,11 @@ do
     qd=qdata_$n
 
     cat >> docker-compose.yml <<EOF
-  node_$n:
+  node_${consensus}_$n:
     image: $image
     volumes:
       - './$qd:/qdata'
+      - '/etc/localtime:/etc/localtime'
     networks:
       quorum_net:
         ipv4_address: '$ip'
@@ -255,7 +407,7 @@ do
       - $((n+node_start_port)):30303
       - $((n+raft_start_port)):50400
       - $((n+ws_start_port)):8546
-      - $((n+tessera_start_port)):9000
+      - $((n+tessera_start_port)):9081
     user: '$uid:$gid'
 EOF
 
@@ -272,22 +424,10 @@ networks:
       - subnet: $subnet
 EOF
 
+# Start Cluster
+if [[ "$auto_start_containers" = "true" ]]; then
+    echo -e "${COLOR_WHITE}[5] Starting Quorum cluster.${COLOR_RESET}"
+    docker-compose up -d 2>/dev/null
+fi
 
-#### Create pre-populated contracts and copy them into nodes' directory ####################################
-
-# Private contract - insert Node 2 as the recipient
-#cat utils/private_contract.js \
-#    | sed s:_NODEKEY_:`cat qdata_2/keys/tm.pub`:g \
-#          > private_contract.js
-
-# Public contract - no change required
-#cp utils/public_contract.js ./
-
-#n=1
-#for ip in ${ips[*]}
-#do
-#    qd=qdata_$n
-#    cp private_contract.js $qd/private_contract.js
-#    cp public_contract.js $qd/public_contract.js
-#    let n++
-#done
+echo -e "${COLOR_WHITE}[-] Finished.${COLOR_RESET}"

@@ -25,7 +25,7 @@ fi
 echo "[*] Starting Tessera node"
 java -jar /tessera/tessera-app.jar -configfile $TMCONF >> /qdata/logs/tessera.log 2>&1 &
 
-sleep 50
+sleep 60
 
 echo "[*] Starting Geth node"
 PRIVATE_CONFIG=/qdata/tm.ipc nohup /usr/local/bin/geth $GETH_ARGS 2>>/qdata/logs/geth.log

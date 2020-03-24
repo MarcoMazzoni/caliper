@@ -10,4 +10,3 @@ rm -f private_contract.js public_contract.js
 
 echo "  - Cleaning up peer list in config.json"
 sed -i '/"peer":\[/,/\]/{//!d}' utils/config.json
-

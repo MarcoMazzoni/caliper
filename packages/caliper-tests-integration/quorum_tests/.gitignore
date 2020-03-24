@@ -1,2 +1,3 @@
-**/*.log
-report.html
+./config/qdata_*
+./config/.current_config
+./config/docker-compose.yml

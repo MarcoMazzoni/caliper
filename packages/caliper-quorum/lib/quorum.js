@@ -104,33 +104,39 @@ class Quorum extends BlockchainInterface {
             promises.push(
                 new Promise(async function(resolve, reject) {
                     let contractInstance = null;
-                    let status = "PUBLIC"
-
-                    if (isPrivate) {
-                        contractInstance = await self.deployPrivateContract(
-                            contractData,
-                            privateFrom,
-                            privateFor
+                    let status = "PUBLIC";
+                    try {
+                        if (isPrivate) {
+                            contractInstance = await self.deployPrivateContract(
+                                contractData,
+                                privateFrom,
+                                privateFor
+                            );
+                            status = "PRIVATE";
+                        } else {
+                            contractInstance = await self.deployContract(
+                                contractData
+                            );
+                        }
+                        logger.info(
+                            "Deployed contract " +
+                                contractData.name +
+                                " at " +
+                                contractInstance.options.address +
+                                ", status: " +
+                                status
                         );
-                        status = "PRIVATE";
-                    } else {
-                        contractInstance = await self.deployContract(
-                            contractData
-                        );
+                        self.quorumConfig.contracts[key].address =
+                            contractInstance.options.address;
+                        self.quorumConfig.contracts[key].gas = contractGas;
+                        self.quorumConfig.contracts[
+                            key
+                        ].estimateGas = estimateGas;
+                        resolve(contractInstance);
+                    } catch (error) {
+                        logger.error(error);
+                        reject(error);
                     }
-
-                    logger.info(
-                        "Deployed contract " +
-                            contractData.name +
-                            " at " +
-                            contractInstance.options.address +
-                            ", status: " + status
-                    );
-                    self.quorumConfig.contracts[key].address =
-                        contractInstance.options.address;
-                    self.quorumConfig.contracts[key].gas = contractGas;
-                    self.quorumConfig.contracts[key].estimateGas = estimateGas;
-                    resolve(contractInstance);
                 })
             );
         }
@@ -315,14 +321,12 @@ class Quorum extends BlockchainInterface {
         let contractInfo = context.contracts[contractID];
 
         try {
-            context.engine.submitCallback(1);
+            context.engine.submitCallback(1); //increment callback counter
             let receipt = null;
             let methodType = "send";
             if (methodCall.isView) {
                 methodType = "call";
-            }
-            /*
-            else if (
+            } else if (
                 context.nonces &&
                 typeof context.nonces[context.fromAddress] !== "undefined"
             ) {
@@ -330,12 +334,11 @@ class Quorum extends BlockchainInterface {
                 context.nonces[context.fromAddress] = nonce + 1;
                 params.nonce = nonce;
             }
-*/
+            // Setting Quorum isPrivate and privateFor parameters
             if (methodType === "send" && methodCall.isPrivate) {
                 params.isPrivate = methodCall.isPrivate;
                 params.privateFor = methodCall.privateFor;
             }
-
             if (methodCall.args) {
                 receipt = await contractInfo.contract.methods[methodCall.verb](
                     ...methodCall.args
