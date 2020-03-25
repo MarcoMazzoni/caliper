@@ -1,26 +1,26 @@
 /*
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+* http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*/
 
-"use strict";
+'use strict';
 
-const Blockchain = require("../common/core/blockchain");
-const CaliperUtils = require("../common/utils/caliper-utils");
-const ConfigUtils = require("../common/config/config-util");
-const RoundOrchestrator = require("./orchestrators/round-orchestrator");
-const BenchValidator = require("../common/utils/benchmark-validator");
+const Blockchain = require('../common/core/blockchain');
+const CaliperUtils = require('../common/utils/caliper-utils');
+const ConfigUtils = require('../common/config/config-util');
+const RoundOrchestrator = require('./orchestrators/round-orchestrator');
+const BenchValidator = require('../common/utils/benchmark-validator');
 
-const logger = CaliperUtils.getLogger("caliper-engine");
+const logger = CaliperUtils.getLogger('caliper-engine');
 
 /**
  * Encapsulates the high-level control flow of a benchmark execution.
@@ -54,7 +54,7 @@ class CaliperEngine {
             this.networkConfig.caliper.command[commandName]
         ) {
             let command = this.networkConfig.caliper.command[commandName];
-            if (typeof command !== "string") {
+            if (typeof command !== 'string') {
                 let msg = `Network configuration attribute "caliper.command.${commandName}" is not a string`;
                 logger.error(msg, command);
                 this.returnCode = errorStatusStart + 1;
@@ -101,7 +101,7 @@ class CaliperEngine {
         // Validate configObject (benchmark configuration file)
         BenchValidator.validateObject(this.benchmarkConfig);
 
-        logger.info("Starting benchmark flow");
+        logger.info('Starting benchmark flow');
         let adapter = await this.adapterFactory(-1); // creates blockchain instance for Master process
         const blockchainWrapper = new Blockchain(adapter);
 
@@ -109,16 +109,16 @@ class CaliperEngine {
             // Conditional running of 'start' commands
             if (!flowOpts.performStart) {
                 logger.info(
-                    "Skipping start commands due to benchmark flow conditioning"
+                    'Skipping start commands due to benchmark flow conditioning'
                 );
             } else {
-                await this._executeCommand("start", 0);
+                await this._executeCommand('start', 0);
             }
 
             // Conditional network initialization
             if (!flowOpts.performInit) {
                 logger.info(
-                    "Skipping initialization phase due to benchmark flow conditioning"
+                    'Skipping initialization phase due to benchmark flow conditioning'
                 );
             } else {
                 let initStartTime = Date.now();
@@ -142,7 +142,7 @@ class CaliperEngine {
             // Conditional smart contract installation
             if (!flowOpts.performInstall) {
                 logger.info(
-                    "Skipping install smart contract phase due to benchmark flow conditioning"
+                    'Skipping install smart contract phase due to benchmark flow conditioning'
                 );
             } else {
                 let installStartTime = Date.now();
@@ -166,7 +166,7 @@ class CaliperEngine {
             // Conditional test phase
             if (!flowOpts.performTest) {
                 logger.info(
-                    "Skipping benchmark test phase due to benchmark flow conditioning"
+                    'Skipping benchmark test phase due to benchmark flow conditioning'
                 );
             } else {
                 let numberSet =
@@ -199,11 +199,11 @@ class CaliperEngine {
             // Conditional running of 'end' commands
             if (!flowOpts.performEnd) {
                 logger.info(
-                    "Skipping end command due to benchmark flow conditioning"
+                    'Skipping end command due to benchmark flow conditioning'
                 );
             } else {
                 try {
-                    await this._executeCommand("end", 6);
+                    await this._executeCommand('end', 6);
                 } catch (err) {
                     // the error was already handled/logged, so ignore it
                 }

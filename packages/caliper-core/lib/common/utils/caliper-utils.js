@@ -1,26 +1,26 @@
 /*
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+* http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*/
 
-"use strict";
+'use strict';
 
-const { exec, spawn } = require("child_process");
-const path = require("path");
-require("winston-daily-rotate-file");
-const fs = require("fs");
-const yaml = require("js-yaml");
-const loggingUtil = require("./logging-util.js");
-const Config = require("../config/config-util");
+const { exec, spawn } = require('child_process');
+const path = require('path');
+require('winston-daily-rotate-file');
+const fs = require('fs');
+const yaml = require('js-yaml');
+const loggingUtil = require('./logging-util.js');
+const Config = require('../config/config-util');
 
 /**
  * Internal Utility class for Caliper
@@ -31,7 +31,7 @@ class CaliperUtils {
      * @return {boolean} True, if the process has a parent process. Otherwise, false.
      */
     static isForkedProcess() {
-        return process.send !== undefined && typeof process.send === "function";
+        return process.send !== undefined && typeof process.send === 'function';
     }
 
     /**
@@ -45,7 +45,7 @@ class CaliperUtils {
         // check benchmark config path
         let benchmarkConfigPath = Config.get(Config.keys.BenchConfig);
         if (!benchmarkConfigPath) {
-            let msg = "Benchmark configuration file path is not set";
+            let msg = 'Benchmark configuration file path is not set';
             throw new Error(msg);
         }
 
@@ -58,7 +58,7 @@ class CaliperUtils {
         // check network config path
         let networkConfigPath = Config.get(Config.keys.NetworkConfig);
         if (!networkConfigPath) {
-            let msg = "Network configuration file path is not set";
+            let msg = 'Network configuration file path is not set';
             throw new Error(msg);
         }
 
@@ -75,7 +75,7 @@ class CaliperUtils {
         if (
             !networkConfig.caliper ||
             !networkConfig.caliper.blockchain ||
-            typeof networkConfig.caliper.blockchain !== "string"
+            typeof networkConfig.caliper.blockchain !== 'string'
         ) {
             let msg = `Network configuration file "${networkConfigPath}" is missing its "caliper.blockchain" string attribute`;
             throw new Error(msg);
@@ -88,13 +88,13 @@ class CaliperUtils {
      */
     static getBuiltinAdapterPackageNames() {
         return new Map([
-            ["burrow", "@hyperledger/caliper-burrow"],
-            ["ethereum", "@hyperledger/caliper-ethereum"],
-            ["fabric", "@hyperledger/caliper-fabric"],
-            ["fisco-bcos", "@hyperledger/caliper-fisco-bcos"],
-            ["iroha", "@hyperledger/caliper-iroha"],
-            ["sawtooth", "@hyperledger/caliper-sawtooth"],
-            ["quorum", "@hyperledger/caliper-quorum"]
+            ['burrow', '@hyperledger/caliper-burrow'],
+            ['ethereum', '@hyperledger/caliper-ethereum'],
+            ['fabric', '@hyperledger/caliper-fabric'],
+            ['fisco-bcos', '@hyperledger/caliper-fisco-bcos'],
+            ['iroha', '@hyperledger/caliper-iroha'],
+            ['sawtooth', '@hyperledger/caliper-sawtooth'],
+            ['quorum', '@hyperledger/caliper-quorum']
         ]);
     }
 
@@ -123,7 +123,7 @@ class CaliperUtils {
      */
     static loadFunction(module, functionName, moduleName) {
         const func = module[functionName];
-        if (!func || typeof func !== "function") {
+        if (!func || typeof func !== 'function') {
             throw new Error(
                 `Function "${functionName}" could not be loaded for module "${moduleName}"`
             );
@@ -151,7 +151,7 @@ class CaliperUtils {
         // get correct module path
         if (builtInModules.has(moduleName)) {
             modulePath = builtInModules.get(moduleName);
-        } else if (moduleName.startsWith("./") || moduleName.startsWith("/")) {
+        } else if (moduleName.startsWith('./') || moduleName.startsWith('/')) {
             // treat it as an external module, but resolve the path, so it's absolute
             modulePath = CaliperUtils.resolvePath(moduleName);
         } else {
@@ -216,7 +216,7 @@ class CaliperUtils {
      */
     static resolvePath(relOrAbsPath, root_path = undefined) {
         if (!relOrAbsPath) {
-            throw new Error("Util.resolvePath: Parameter is undefined");
+            throw new Error('Util.resolvePath: Parameter is undefined');
         }
 
         if (path.isAbsolute(relOrAbsPath)) {
@@ -237,12 +237,12 @@ class CaliperUtils {
     static parseYaml(filenameOrFilePath) {
         if (!filenameOrFilePath) {
             throw new Error(
-                "Util.parseYaml: the name or path of a file is undefined"
+                'Util.parseYaml: the name or path of a file is undefined'
             );
         }
 
         try {
-            return yaml.safeLoad(fs.readFileSync(filenameOrFilePath), "utf8");
+            return yaml.safeLoad(fs.readFileSync(filenameOrFilePath), 'utf8');
         } catch (err) {
             throw new Error(
                 `Failed to parse the ${filenameOrFilePath}: ${err.message ||
@@ -259,7 +259,7 @@ class CaliperUtils {
     static stringifyYaml(obj) {
         if (!obj) {
             throw new Error(
-                "Util.stringifyYaml: object to stringify is undefined"
+                'Util.stringifyYaml: object to stringify is undefined'
             );
         }
 
@@ -280,7 +280,7 @@ class CaliperUtils {
     static parseYamlString(stringContent) {
         if (!stringContent) {
             throw new Error(
-                "Util.parseYaml: stringContent parameter is undefined or empty"
+                'Util.parseYaml: stringContent parameter is undefined or empty'
             );
         }
 
@@ -299,7 +299,7 @@ class CaliperUtils {
      * @return {boolean} True, if the object is defined and not null. Otherwise false.
      */
     static checkDefined(object) {
-        return object !== "undefined" && object !== null;
+        return object !== 'undefined' && object !== null;
     }
 
     /**
@@ -308,8 +308,8 @@ class CaliperUtils {
      * @param {string} msg Optional error message to throw in case of unsuccessful check.
      */
     static assertDefined(object, msg) {
-        if (object === "undefined" || object === null) {
-            throw new Error(msg || "Object is undefined or null!");
+        if (object === 'undefined' || object === null) {
+            throw new Error(msg || 'Object is undefined or null!');
         }
     }
 
@@ -341,7 +341,7 @@ class CaliperUtils {
         ) {
             throw new Error(
                 `Property '${propertyName}' of ${objectName ||
-                    "object"} is missing, undefined or null`
+                    'object'} is missing, undefined or null`
             );
         }
     }
@@ -374,7 +374,7 @@ class CaliperUtils {
         if (!CaliperUtils.checkAnyProperty(object, ...propertyNames)) {
             throw new Error(
                 `None of the properties of ${objectName ||
-                    "object"} exists or has values: ${propertyNames.toString()}`
+                    'object'} exists or has values: ${propertyNames.toString()}`
             );
         }
     }
@@ -415,7 +415,7 @@ class CaliperUtils {
      * @async
      */
     static execAsync(command, logAction = true) {
-        const logger = CaliperUtils.getLogger("caliper-utils");
+        const logger = CaliperUtils.getLogger('caliper-utils');
         return new Promise((resolve, reject) => {
             if (logAction) {
                 logger.info(`Executing command: ${command}`);
@@ -445,17 +445,17 @@ class CaliperUtils {
     static invokeCommand(cmd, args, env, cwd) {
         return new Promise((resolve, reject) => {
             let proc = spawn(cmd, args, {
-                stdio: "inherit",
-                cwd: cwd || "./",
+                stdio: 'inherit',
+                cwd: cwd || './',
                 env: env || process.env
             });
 
-            proc.on("exit", (code, signal) => {
+            proc.on('exit', (code, signal) => {
                 if (code !== 0) {
                     return reject(
                         new Error(
                             `Failed to execute "${cmd}" with return code ${code}.${
-                                signal ? ` Signal: ${signal}` : ""
+                                signal ? ` Signal: ${signal}` : ''
                             }`
                         )
                     );
@@ -473,24 +473,24 @@ class CaliperUtils {
      * @param {string} cwd The current working directory to set.
      * @returns {Promise} A Promise that is resolved with the command output or rejected with an Error.
      */
-    static getCommandOutput(cmd, args, env = {}, cwd = "./") {
+    static getCommandOutput(cmd, args, env = {}, cwd = './') {
         return new Promise((resolve, reject) => {
-            let output = "";
+            let output = '';
             let proc = spawn(cmd, args, {
                 cwd: cwd,
                 env: { ...env, ...process.env }
             });
 
-            proc.stdout.on("data", data => {
+            proc.stdout.on('data', data => {
                 output += data.toString();
             });
 
-            proc.on("exit", (code, signal) => {
+            proc.on('exit', (code, signal) => {
                 if (code !== 0) {
                     return reject(
                         new Error(
                             `Failed to execute "${cmd}" with return code ${code}.${
-                                signal ? ` Signal: ${signal}` : ""
+                                signal ? ` Signal: ${signal}` : ''
                             }`
                         )
                     );
@@ -584,13 +584,13 @@ class CaliperUtils {
 
         if (skip && only) {
             throw new Error(
-                "Incompatible benchmark flow parameters specified, caliper-flow-skip-x and caliper-flow-only-x flags may not be mixed"
+                'Incompatible benchmark flow parameters specified, caliper-flow-skip-x and caliper-flow-only-x flags may not be mixed'
             );
         }
 
         if (only > 1) {
             throw new Error(
-                "Incompatible benchmark flow parameters specified, only one of [caliper-flow-only-start, caliper-flow-only-init, caliper-flow-only-install, caliper-flow-only-test, caliper-flow-only-end] may be specified at a time"
+                'Incompatible benchmark flow parameters specified, only one of [caliper-flow-only-start, caliper-flow-only-init, caliper-flow-only-install, caliper-flow-only-test, caliper-flow-only-end] may be specified at a time'
             );
         }
 

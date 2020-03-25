@@ -43,7 +43,6 @@ const colorizeExtra = format((info, opts) => {
 });
 
 const padLevelExtra = format(info => {
-
     let padding = ' '.repeat(Math.max(5 - info[LEVEL].length, 0));
     info.level = `${info.level}${padding}`;
     return info;

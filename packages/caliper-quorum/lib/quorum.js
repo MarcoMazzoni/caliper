@@ -12,17 +12,17 @@
  * limitations under the License.
  */
 
-"use strict";
+'use strict';
 
-const EthereumHDKey = require("ethereumjs-wallet/hdkey");
-const Web3 = require("web3");
+const EthereumHDKey = require('ethereumjs-wallet/hdkey');
+const Web3 = require('web3');
 const {
     BlockchainInterface,
     CaliperUtils,
     ConfigUtil,
     TxStatus
-} = require("@hyperledger/caliper-core");
-const logger = CaliperUtils.getLogger("quorum.js");
+} = require('@hyperledger/caliper-core');
+const logger = CaliperUtils.getLogger('quorum.js');
 
 /**
  * @typedef {Object} EthereumInvoke
@@ -45,7 +45,7 @@ class Quorum extends BlockchainInterface {
         let configPath = CaliperUtils.resolvePath(
             ConfigUtil.get(ConfigUtil.keys.NetworkConfig)
         );
-        this.bcType = "quorum";
+        this.bcType = 'quorum';
         this.quorumConfig = require(configPath).quorum;
         this.web3 = new Web3(
             new Web3.providers.HttpProvider(this.quorumConfig.url)
@@ -88,7 +88,7 @@ class Quorum extends BlockchainInterface {
     async installSmartContract() {
         let promises = [];
         let self = this;
-        logger.info("Creating contracts...");
+        logger.info('Creating contracts...');
         for (const key of Object.keys(this.quorumConfig.contracts)) {
             let contractData = require(CaliperUtils.resolvePath(
                 this.quorumConfig.contracts[key].path
@@ -104,7 +104,7 @@ class Quorum extends BlockchainInterface {
             promises.push(
                 new Promise(async function(resolve, reject) {
                     let contractInstance = null;
-                    let status = "PUBLIC";
+                    let status = 'PUBLIC';
                     try {
                         if (isPrivate) {
                             contractInstance = await self.deployPrivateContract(
@@ -112,18 +112,18 @@ class Quorum extends BlockchainInterface {
                                 privateFrom,
                                 privateFor
                             );
-                            status = "PRIVATE";
+                            status = 'PRIVATE';
                         } else {
                             contractInstance = await self.deployContract(
                                 contractData
                             );
                         }
                         logger.info(
-                            "Deployed contract " +
+                            'Deployed contract ' +
                                 contractData.name +
-                                " at " +
+                                ' at ' +
                                 contractInstance.options.address +
-                                ", status: " +
+                                ', status: ' +
                                 status
                         );
                         self.quorumConfig.contracts[key].address =
@@ -165,7 +165,7 @@ class Quorum extends BlockchainInterface {
                     args.contracts[key].address,
                     {
                         from: this.quorumConfig.fromAddress,
-                        gasPrice: "0"
+                        gasPrice: '0'
                     }
                 ),
                 gas: args.contracts[key].gas,
@@ -323,19 +323,19 @@ class Quorum extends BlockchainInterface {
         try {
             context.engine.submitCallback(1); //increment callback counter
             let receipt = null;
-            let methodType = "send";
+            let methodType = 'send';
             if (methodCall.isView) {
-                methodType = "call";
+                methodType = 'call';
             } else if (
                 context.nonces &&
-                typeof context.nonces[context.fromAddress] !== "undefined"
+                typeof context.nonces[context.fromAddress] !== 'undefined'
             ) {
                 let nonce = context.nonces[context.fromAddress];
                 context.nonces[context.fromAddress] = nonce + 1;
                 params.nonce = nonce;
             }
             // Setting Quorum isPrivate and privateFor parameters
-            if (methodType === "send" && methodCall.isPrivate) {
+            if (methodType === 'send' && methodCall.isPrivate) {
                 params.isPrivate = methodCall.isPrivate;
                 params.privateFor = methodCall.privateFor;
             }
@@ -355,13 +355,13 @@ class Quorum extends BlockchainInterface {
         } catch (err) {
             status.SetStatusFail();
             logger.error(
-                "Failed tx on " +
+                'Failed tx on ' +
                     contractID +
-                    " calling method " +
+                    ' calling method ' +
                     methodCall.verb +
-                    " PrivateFrom " +
+                    ' PrivateFrom ' +
                     params.nonce +
-                    " ARGS: " +
+                    ' ARGS: ' +
                     methodCall.args
             );
             logger.error(err);
@@ -378,7 +378,7 @@ class Quorum extends BlockchainInterface {
      * @param {string} [fcn=query] The contract query function name.
      * @return {Promise<object>} The promise for the result of the execution.
      */
-    async queryState(context, contractID, contractVer, key, fcn = "query") {
+    async queryState(context, contractID, contractVer, key, fcn = 'query') {
         let methodCall = {
             verb: fcn,
             args: [key],
@@ -410,9 +410,9 @@ class Quorum extends BlockchainInterface {
                 .send({
                     from: contractDeployerAddress,
                     gas: contractData.gas,
-                    gasPrice: "0"
+                    gasPrice: '0'
                 })
-                .on("error", error => {
+                .on('error', error => {
                     reject(error);
                 })
                 .then(newContractInstance => {
@@ -424,6 +424,8 @@ class Quorum extends BlockchainInterface {
     /**
      * Deploys a new Private contract using the given web3 instance
      * @param {JSON} contractData Contract data with abi, bytecode and gas properties
+     * @param {JSON} privateFrom Tessera pub key
+     * @param {JSON} privateFor array of Tessera pub keys
      * @returns {Promise<web3.eth.Contract>} The deployed private contract instance
      */
     deployPrivateContract(contractData, privateFrom, privateFor) {
@@ -438,11 +440,11 @@ class Quorum extends BlockchainInterface {
                 .send({
                     from: contractDeployerAddress,
                     gas: contractData.gas,
-                    gasPrice: "0",
+                    gasPrice: '0',
                     privateFrom: privateFrom,
                     privateFor: privateFor
                 })
-                .on("error", error => {
+                .on('error', error => {
                     reject(error);
                 })
                 .then(newContractInstance => {
