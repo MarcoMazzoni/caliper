@@ -49,3 +49,5 @@ lerna-debug.log
 
 # Ignore data
 data/
+
+**/qdata_*
