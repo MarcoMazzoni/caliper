@@ -1,7 +1,7 @@
-# Added by me
-    * Support to JPM Quorum (https://github.com/jpmorganchase/quorum)
-
 # ![Hyperledger Caliper](https://wiki.hyperledger.org/download/attachments/2392434/Hyperledger_Caliper_Logo_Color.svg?version=1&modificationDate=1548883186000&api=v2)
+
+# Added by me
+* Support to JPM Quorum (https://github.com/jpmorganchase/quorum): public and private transactions with integration tests
 
 [![Build Status](https://travis-ci.com/hyperledger/caliper.svg?branch=master)](https://travis-ci.com/hyperledger/caliper)
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/2381/badge)](https://bestpractices.coreinfrastructure.org/projects/2381)
