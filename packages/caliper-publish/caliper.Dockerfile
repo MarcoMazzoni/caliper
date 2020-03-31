@@ -12,7 +12,7 @@
 # limitations under the License.
 #
 
-FROM node:10.16-alpine
+FROM node:10.19-alpine3.11
 
 # require to set these explicitly to avoid mistakes
 ARG npm_registry
