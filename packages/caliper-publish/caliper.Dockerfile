@@ -12,14 +12,17 @@
 # limitations under the License.
 #
 
-FROM node:10.19-alpine3.11
+FROM node:10.19-alpine
 
 # require to set these explicitly to avoid mistakes
 ARG npm_registry
 ARG caliper_version
 
 # Install packages for dependency compilation
-RUN apk add --no-cache python g++ make git
+RUN apk add --no-cache python \
+        make \
+        g++ \
+        git
 
 # execute as the "node" user, created in the base image
 USER node:node
@@ -28,6 +31,11 @@ WORKDIR /hyperledger/caliper/workspace
 # 1 & 2. change the NPM global install directory
 # https://docs.npmjs.com/resolving-eacces-permissions-errors-when-installing-packages-globally#manually-change-npms-default-directory
 # 3. install Caliper globally
+
+# This flag ignore the warnings arised by the bcrypt library (I think it's due to web3 encryption functions)
+ENV CXXFLAGS="-Wno-cast-function-type -Wno-deprecated-declarations -Wno-unused-result" 
+# if Node version < 10.13 use this:
+#ENV CXXFLAGS="-Wno-deprecated-declarations" 
 RUN mkdir /home/node/.npm-global \
     && npm config set prefix '/home/node/.npm-global' \
     && npm install ${npm_registry} -g --only=prod @hyperledger/caliper-cli@${caliper_version}
@@ -38,3 +46,4 @@ ENV CALIPER_BIND_ARGS -g
 
 ENTRYPOINT ["caliper"]
 CMD ["--version"]
+
