@@ -198,6 +198,86 @@ function _processFormatOptions() {
 }
 
 /**
+ * Processes the format configuration and assembles the combined format.
+ * @return {Format} The combined format.
+ * @private
+ */
+function _processFileFormatOptions() {
+    let formats = [];
+
+    // NOTES:
+    // This is the same function as _processFormatOptions()
+    // except for colorize. I want the file log to be printed out
+    // with the same winston logger format
+    // Avoid colorize to not include color escape codes 
+
+
+    let formatKey = conf.keys.Logging.Formats;
+
+    // timestamp
+    let timestamp = conf.get(formatKey.Timestamp);
+    if (timestamp && typeof timestamp === 'string') {
+        let opts = {
+            format: timestamp
+        };
+        formats.push(format.timestamp(opts));
+    }
+
+    // label
+    let label = conf.get(formatKey.Label);
+    if (label && typeof label === 'string') {
+        let opts = {
+            label: label,
+            message: false
+        };
+        formats.push(format.label(opts));
+    }
+
+    // JSON
+    let json = conf.get(formatKey.JsonRoot);
+    if (json && typeof json === 'object') {
+        let opts = {
+            space: conf.get(formatKey.Json.Space, 0)
+        };
+        formats.push(format.json(opts));
+
+        // return now, since the other formats are mutually exclusive with the JSON format
+        return format.combine(...formats);
+    }
+
+    // padding
+    let pad = conf.get(formatKey.Pad);
+    if (pad === true) {
+        formats.push(PadLevelExtra());
+    }
+
+    // aligning
+    let align = conf.get(formatKey.Align);
+    if (align === true) {
+        formats.push(format.align());
+    }
+
+    // attribute formatter
+    let attributeFormat = conf.get(formatKey.AttributeFormatRoot);
+    if (attributeFormat && typeof attributeFormat === 'object') {
+        let opts = {
+            timestamp: conf.get(formatKey.AttributeFormat.Timestamp),
+            label: conf.get(formatKey.AttributeFormat.Label),
+            level: conf.get(formatKey.AttributeFormat.Level),
+            module: conf.get(formatKey.AttributeFormat.Module),
+            message: conf.get(formatKey.AttributeFormat.Message),
+            metadata: conf.get(formatKey.AttributeFormat.Metadata)
+        };
+        formats.push(AttributeFormat(opts));
+    }
+
+    // message format
+    formats.push(_messageFormat());
+
+    return format.combine(...formats);
+}
+
+/**
  * Saves the global logger object in the caliper namespace. For internal use only!
  * @param {Logger} logger  The configured winston logger instance.
  * @private
@@ -276,9 +356,11 @@ function _createConfiguredLogger() {
     let logFormats = conf.get(conf.keys.Logging.FormatsRoot);
 
     // if the "logging.formats" key/object exists, then probably it contains settings to process
-    winstonOptions.format = typeof logFormats === 'object'
-        ? _processFormatOptions()
-        : _assembleDefaultFormat();
+    // winstonOptions.format = typeof logFormats === 'object'
+    //     ? _processFormatOptions()
+    //     : _assembleDefaultFormat();
+    let winstonFormat = typeof logFormats === 'object' ? _processFormatOptions() : _assembleDefaultFormat();
+    let fileFormat = typeof logFormats === 'object' ? _processFileFormatOptions() : _assembleDefaultFormat();
 
     winstonOptions.transports = [];
 
@@ -306,6 +388,16 @@ function _createConfiguredLogger() {
         case 'console': {
             let consoleOptions = targetSettings.options || {};
             consoleOptions.name = target;
+            /////////////////////////////////////Added by me
+            consoleOptions.format = winstonFormat;
+            winstonOptions.transports.push(new transports.Console(consoleOptions));
+            break;
+        }
+        case 'redirect-console-to-file': {
+            let consoleOptions = targetSettings.options || {};
+            consoleOptions.name = target;
+            /////////////////////////////////////Added by me
+            consoleOptions.format = fileFormat;
             winstonOptions.transports.push(new transports.Console(consoleOptions));
             break;
         }
@@ -322,7 +414,8 @@ function _createConfiguredLogger() {
                 fileOptions.filename = path.join(workspace, fileOptions.filename);
             }
             fileOptions.name = target;
-
+            /////////////////////////////////////Added by me
+            fileOptions.format = fileFormat;
             winstonOptions.transports.push(new transports.File(fileOptions));
             break;
         }
