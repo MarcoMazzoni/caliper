@@ -1,4 +1,3 @@
-
 #Create image layer pulling QUORUM from git and installing GOLANG
 FROM ubuntu:18.04 as builder 
 

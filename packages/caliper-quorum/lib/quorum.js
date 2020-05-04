@@ -348,6 +348,11 @@ class Quorum extends BlockchainInterface {
                     methodCall.verb
                 ]()[methodType](params);
             }
+            // This does not work: in Ethereum, the receipt can have
+            // status: true or false
+            // The fact that we have a receipt, is not enough to assume that Tx is Success!
+            // We have to check for status field in the receipt object
+            // if(receipt.status == true) status.setStatusSuccess() else status.setStatusFaile()
             status.SetID(receipt.transactionHash);
             status.SetResult(receipt);
             status.SetVerification(true);

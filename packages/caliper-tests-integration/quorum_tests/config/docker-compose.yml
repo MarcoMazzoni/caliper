@@ -1,6 +1,6 @@
 version: '3.6'
 services:
-  node_istanbul_1:
+  node_raft_1:
     image: quorum-raft-ibft
     volumes:
       - './qdata_1:/qdata'
@@ -15,7 +15,7 @@ services:
       - 26001:8546
       - 27001:9081
     user: '1000:1000'
-  node_istanbul_2:
+  node_raft_2:
     image: quorum-raft-ibft
     volumes:
       - './qdata_2:/qdata'
@@ -30,7 +30,7 @@ services:
       - 26002:8546
       - 27002:9081
     user: '1000:1000'
-  node_istanbul_3:
+  node_raft_3:
     image: quorum-raft-ibft
     volumes:
       - './qdata_3:/qdata'
@@ -45,7 +45,7 @@ services:
       - 26003:8546
       - 27003:9081
     user: '1000:1000'
-  node_istanbul_4:
+  node_raft_4:
     image: quorum-raft-ibft
     volumes:
       - './qdata_4:/qdata'
@@ -60,7 +60,7 @@ services:
       - 26004:8546
       - 27004:9081
     user: '1000:1000'
-  node_istanbul_5:
+  node_raft_5:
     image: quorum-raft-ibft
     volumes:
       - './qdata_5:/qdata'
