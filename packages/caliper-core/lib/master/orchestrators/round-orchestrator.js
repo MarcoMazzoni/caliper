@@ -21,6 +21,7 @@ const Report = require('../report/report');
 const TestObserver = require('../test-observers/test-observer');
 const CaliperUtils = require('../../common/utils/caliper-utils');
 const logger = CaliperUtils.getLogger('round-orchestrator');
+const Config = require('../../common/config/config-util.js');
 
 /**
  * Schedules and drives the configured benchmark rounds.
@@ -41,6 +42,7 @@ class RoundOrchestrator {
         this.monitorOrchestrator = new MonitorOrchestrator(this.benchmarkConfig);
         this.report = new Report(this.monitorOrchestrator, this.benchmarkConfig, this.networkConfig);
         this.testObserver = new TestObserver(this.benchmarkConfig);
+        this.txUpdateTime = Config.get(Config.keys.TxUpdateTime, 1000);
     }
 
     /**
@@ -192,7 +194,8 @@ class RoundOrchestrator {
                 // - TPS
                 let idx;
                 if (this.monitorOrchestrator.hasMonitor('prometheus')) {
-                    idx = await this.report.processPrometheusTPSResults({start, end}, roundConfig, index);
+                    let query = {start: start, end: end + this.txUpdateTime};
+                    idx = await this.report.processPrometheusTPSResults(query, roundConfig, index);
                 } else {
                     idx = await this.report.processLocalTPSResults(results, roundConfig);
                 }
