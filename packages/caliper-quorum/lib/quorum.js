@@ -47,11 +47,29 @@ class Quorum extends BlockchainInterface {
         );
         this.bcType = 'quorum';
         this.quorumConfig = require(configPath).quorum;
-        this.web3 = new Web3(
-            new Web3.providers.HttpProvider(this.quorumConfig.url)
-        );
-        this.web3.transactionConfirmationBlocks = this.quorumConfig.transactionConfirmationBlocks;
         this.clientIndex = workerIndex;
+        this.fromAddress = "";
+        this.fromAddressPassword = "";
+        this.privateFrom = "";
+
+        // If Master or Worker1, use first node in networkConfig nodes array
+        if (this.clientIndex == -1 || workerIndex == 0) {
+            this.web3 = new Web3(
+                new Web3.providers.HttpProvider(this.quorumConfig.nodes[0].url)
+            );
+            this.fromAddress = this.quorumConfig.nodes[0].fromAddress;
+            this.fromAddressPassword = this.quorumConfig.nodes[0].fromAddressPassword;
+            this.privateFrom = this.quorumConfig.nodes[0].privateFrom;
+        }
+        else {
+            this.web3 = new Web3(
+                new Web3.providers.HttpProvider(this.quorumConfig.nodes[this.clientIndex].url)
+            );
+            this.fromAddress = this.quorumConfig.nodes[this.clientIndex].fromAddress;
+            this.fromAddressPassword = this.quorumConfig.nodes[this.clientIndex].fromAddressPassword;
+            this.privateFrom = this.quorumConfig.nodes[this.clientIndex].privateFrom;
+        }
+        this.web3.transactionConfirmationBlocks = this.quorumConfig.transactionConfirmationBlocks;
     }
 
     /**
@@ -98,7 +116,7 @@ class Quorum extends BlockchainInterface {
             let estimateGas = this.quorumConfig.contracts[key].estimateGas;
             let isPrivate = this.quorumConfig.contracts[key].isPrivate;
             let privateFor = this.quorumConfig.contracts[key].privateFor;
-            let privateFrom = this.quorumConfig.privateFrom;
+            let privateFrom = this.privateFrom;
 
             this.quorumConfig.contracts[key].abi = contractData.abi;
             promises.push(
@@ -164,7 +182,7 @@ class Quorum extends BlockchainInterface {
                     args.contracts[key].abi,
                     args.contracts[key].address,
                     {
-                        from: this.quorumConfig.fromAddress,
+                        from: this.fromAddress,
                         gasPrice: '0'
                     }
                 ),
@@ -175,40 +193,15 @@ class Quorum extends BlockchainInterface {
                 privateFor: args.contracts[key].privateFor
             };
         }
-        if (this.quorumConfig.fromAddress) {
-            context.fromAddress = this.quorumConfig.fromAddress;
+        if (this.fromAddress) {
+            context.fromAddress = this.fromAddress;
         }
 
         //Quorum specific
-        if (this.quorumConfig.privateFrom) {
-            context.privateFrom = this.quorumConfig.privateFrom;
-        }
-
-        if (this.quorumConfig.fromAddressSeed) {
-            let hdwallet = EthereumHDKey.fromMasterSeed(
-                this.quorumConfig.fromAddressSeed
-            );
-            let wallet = hdwallet
-                .derivePath("m/44'/60'/" + this.clientIndex + "'/0/0")
-                .getWallet();
-            context.fromAddress = wallet.getChecksumAddressString();
-            context.nonces[
-                context.fromAddress
-            ] = await this.web3.eth.getTransactionCount(context.fromAddress);
-            this.web3.eth.accounts.wallet.add(wallet.getPrivateKeyString());
-        } else if (this.quorumConfig.fromAddressPrivateKey) {
-            context.nonces[
-                this.quorumConfig.fromAddress
-            ] = await this.web3.eth.getTransactionCount(
-                this.quorumConfig.fromAddress
-            );
-            this.web3.eth.accounts.wallet.add(
-                this.quorumConfig.fromAddressPrivateKey
-            );
-        } else if (this.quorumConfig.fromAddressPassword) {
+        if (this.fromAddressPassword) {
             await context.web3.eth.personal.unlockAccount(
-                this.quorumConfig.fromAddress,
-                this.quorumConfig.fromAddressPassword,
+                this.fromAddress,
+                this.fromAddressPassword,
                 1000
             );
         }
@@ -348,11 +341,6 @@ class Quorum extends BlockchainInterface {
                     methodCall.verb
                 ]()[methodType](params);
             }
-            // This does not work: in Ethereum, the receipt can have
-            // status: true or false
-            // The fact that we have a receipt, is not enough to assume that Tx is Success!
-            // We have to check for status field in the receipt object
-            // if(receipt.status == true) status.setStatusSuccess() else status.setStatusFaile()
             status.SetID(receipt.transactionHash);
             status.SetResult(receipt);
             status.SetVerification(true);
@@ -364,8 +352,8 @@ class Quorum extends BlockchainInterface {
                     contractID +
                     ' calling method ' +
                     methodCall.verb +
-                    ' PrivateFrom ' +
-                    params.nonce +
+                    ' From ' +
+                    params.from +
                     ' ARGS: ' +
                     methodCall.args
             );

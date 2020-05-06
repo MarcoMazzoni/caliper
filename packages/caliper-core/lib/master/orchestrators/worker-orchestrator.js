@@ -573,7 +573,6 @@ class WorkerOrchestrator {
                 allStartedTime = workerResult.start;
             }
 
-            //if (!allFinishedTime || workerResult.end < allFinishedTime)
             if (!allFinishedTime || workerResult.end < allFinishedTime) {
                 allFinishedTime = workerResult.end;
             }
