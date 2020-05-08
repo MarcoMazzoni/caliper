@@ -16,4 +16,4 @@
 
 #node ./packages/caliper-cli/caliper.js launch master --caliper-workspace ../caliper-benchmarks/networks/quorum/5nodes-raft --caliper-benchconfig benchconfig.yaml --caliper-networkconfig networkconfig.json
 
-node ./packages/caliper-cli/caliper.js launch master --caliper-workspace ../quorum-caliper-benchmarks/3n-raft-local/ --caliper-benchconfig benchconfig.yaml --caliper-networkconfig networkconfig.json
+node ./packages/caliper-cli/caliper.js launch master --caliper-workspace ../quorum-caliper-benchmarks/3n-raft-local/ --caliper-benchconfig benchconfig.yaml --caliper-networkconfig networkconfig.json --caliper-flow-skip-end

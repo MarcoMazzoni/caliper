@@ -47,10 +47,13 @@ module.exports.run = function() {
       chaincodeFunction: 'transfer',
       chaincodeArguments: [account1, account2, initmoney.toString()]
     };
-  } else {
+  } 
+  else { //Quorum 
     args = {
       verb: 'transfer',
-      args: [account1, account2, initmoney]
+      args: [account1, account2, initmoney],
+      isPrivate: contx.contracts['simple'].isPrivate,
+      privateFor: contx.contracts['simple'].privateFor
     };
   }
 

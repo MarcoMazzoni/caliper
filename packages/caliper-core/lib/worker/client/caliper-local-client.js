@@ -419,7 +419,7 @@ class CaliperLocalClient {
             Logger.info(`Client[${this.clientIndex}] encountered an error: ${(err.stack ? err.stack : err)}`);
             throw err;
         } finally {
-            this.txReset();
+            //this.txReset();
         }
     }
 }
