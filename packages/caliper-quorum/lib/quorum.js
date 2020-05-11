@@ -328,7 +328,7 @@ class Quorum extends BlockchainInterface {
                 params.nonce = nonce;
             }
             // Setting Quorum isPrivate and privateFor parameters
-            if (methodType === 'send' && methodCall.isPrivate) {
+            if (methodCall.isPrivate) {
                 params.isPrivate = methodCall.isPrivate;
                 params.privateFor = methodCall.privateFor;
             }

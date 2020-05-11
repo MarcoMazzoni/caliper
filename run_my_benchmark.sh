@@ -16,4 +16,28 @@
 
 #node ./packages/caliper-cli/caliper.js launch master --caliper-workspace ../caliper-benchmarks/networks/quorum/5nodes-raft --caliper-benchconfig benchconfig.yaml --caliper-networkconfig networkconfig.json
 
-node ./packages/caliper-cli/caliper.js launch master --caliper-workspace ../quorum-caliper-benchmarks/3n-raft-local/ --caliper-benchconfig benchconfig.yaml --caliper-networkconfig networkconfig.json --caliper-flow-skip-end
+#1 Raft local PUB
+#node ./packages/caliper-cli/caliper.js launch master --caliper-workspace ../quorum-caliper-benchmarks/raft/5n-raft-local-pub/ --caliper-benchconfig benchconfig.yaml --caliper-networkconfig networkconfig.json --caliper-flow-skip-end
+
+#2 Raft local PRIV
+#node ./packages/caliper-cli/caliper.js launch master --caliper-workspace ../quorum-caliper-benchmarks/raft/5n-raft-local-priv/ --caliper-benchconfig benchconfig.yaml --caliper-networkconfig networkconfig.json 
+
+#3 Istanbul local PUB
+#node ./packages/caliper-cli/caliper.js launch master --caliper-workspace ../quorum-caliper-benchmarks/ibft/5n-ibft-local-pub/ --caliper-benchconfig benchconfig.yaml --caliper-networkconfig networkconfig.json 
+
+#4 Istanbul local PRIV
+#node ./packages/caliper-cli/caliper.js launch master --caliper-workspace ../quorum-caliper-benchmarks/ibft/5n-ibft-local-priv/ --caliper-benchconfig benchconfig.yaml --caliper-networkconfig networkconfig.json 
+
+#5 Raft MQTT PUB
+#node ./packages/caliper-cli/caliper.js launch master --caliper-workspace ../quorum-caliper-benchmarks/raft/5n-raft-mqtt-pub/ --caliper-benchconfig benchconfig.yaml --caliper-networkconfig networkconfig.json 
+
+#6 Raft MQTT PRIV
+#node ./packages/caliper-cli/caliper.js launch master --caliper-workspace ../quorum-caliper-benchmarks/raft/5n-raft-mqtt-priv/ --caliper-benchconfig benchconfig.yaml --caliper-networkconfig networkconfig.json #--caliper-flow-skip-start
+
+#7 Istanbul MQTT PUB 
+#node ./packages/caliper-cli/caliper.js launch master --caliper-workspace ../quorum-caliper-benchmarks/ibft/5n-ibft-mqtt-pub/ --caliper-benchconfig benchconfig.yaml --caliper-networkconfig networkconfig.json 
+
+# 8 Istanbul MQTT PRIV 
+node ./packages/caliper-cli/caliper.js launch master --caliper-workspace ../quorum-caliper-benchmarks/ibft/5n-ibft-mqtt-priv/ --caliper-benchconfig benchconfig.yaml --caliper-networkconfig networkconfig.json --caliper-flow-skip-start
+
+
